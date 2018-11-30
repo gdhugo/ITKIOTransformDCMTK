@@ -22,6 +22,8 @@
 
 #include "itkTransformIOBase.h"
 
+#include <dcmtk/dcmdata/dcdatset.h>
+
 namespace itk
 {
 
@@ -76,6 +78,12 @@ public:
 protected:
   DCMTKTransformIO();
   ~DCMTKTransformIO() override;
+
+  /** Loads spatial registration objects */
+  void LoadSpatialRegistration(DcmDataset * dataset);
+
+  /** Loads deformation registration objects */
+  void LoadDeformableSpatialRegistration(DcmDataset * dataset);
 
 private:
   std::string m_FrameOfReferenceUID;

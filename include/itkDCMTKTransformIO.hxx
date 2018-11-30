@@ -68,7 +68,7 @@ DCMTKTransformIO< TInternalComputationValueType >
     }
 
   OFString seriesNumber;
-  if( sopClass == UID_SpatialRegistrationStorage )
+  if( sopClass == UID_SpatialRegistrationStorage || sopClass == UID_DeformableSpatialRegistrationStorage )
     {
     return true;
     }
@@ -92,6 +92,38 @@ void
 DCMTKTransformIO< TInternalComputationValueType >
 ::Read()
 {
+  DcmFileFormat fileFormat;
+  OFCondition result = fileFormat.loadFile( this->GetFileName(), EXS_Unknown );
+  if( !result.good() )
+    {
+    itkExceptionMacro( "Could not load transform file: " << this->GetFileName() );
+    }
+
+  DcmDataset * dataset = fileFormat.getDataset();
+  OFString sopClass;
+  if( dataset->findAndGetOFString(DCM_SOPClassUID, sopClass).good() || sopClass.empty() )
+    {
+    if( sopClass == UID_SpatialRegistrationStorage)
+      {
+      this->LoadSpatialRegistration(dataset);
+      }
+    else if( sopClass == UID_DeformableSpatialRegistrationStorage )
+      {
+      this->LoadDeformableSpatialRegistration(dataset);
+      }
+    }
+  else
+  {
+    itkExceptionMacro( "Unsupported SOP Class UID: " << sopClass )
+  }
+
+}
+
+template< typename TInternalComputationValueType >
+void
+DCMTKTransformIO< TInternalComputationValueType >
+::LoadSpatialRegistration(DcmDataset * dataset)
+{
   TransformListType & transformList = this->GetReadTransformList();
   transformList.clear();
 
@@ -109,16 +141,8 @@ DCMTKTransformIO< TInternalComputationValueType >
   // this CompositeTransform
   transformList.push_back( compositeTransform.GetPointer() );
 
-  DcmFileFormat fileFormat;
-  OFCondition result = fileFormat.loadFile( this->GetFileName(), EXS_Unknown );
-  if( !result.good() )
-    {
-    itkExceptionMacro( "Could not load transform file: " << this->GetFileName() );
-    }
-
-  DcmDataset * dataset = fileFormat.getDataset();
   DcmSequenceOfItems * registrationSequence = nullptr;
-  result = dataset->findAndGetSequence( DCM_RegistrationSequence, registrationSequence );
+  OFCondition result = dataset->findAndGetSequence( DCM_RegistrationSequence, registrationSequence );
   if( result.good() )
     {
     const unsigned long numOfRegistrationSequenceItems = registrationSequence->card();
@@ -253,6 +277,17 @@ DCMTKTransformIO< TInternalComputationValueType >
       }
     }
 }
+
+template< typename TInternalComputationValueType >
+void
+DCMTKTransformIO< TInternalComputationValueType >
+::LoadDeformableSpatialRegistration(DcmDataset * dataset)
+{
+
+}
+
+
+
 
 
 template< typename TInternalComputationValueType >
